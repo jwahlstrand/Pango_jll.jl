@@ -7,94 +7,29 @@ using Glib_jll
 using Fontconfig_jll
 using HarfBuzz_jll
 using Cairo_jll
-## Global variables
-PATH = ""
-LIBPATH = ""
-LIBPATH_env = "PATH"
-LIBPATH_default = ""
-
-# Relative path to `libpango`
-const libpango_splitpath = ["bin", "libpango-1.0-0.dll"]
-
-# This will be filled out by __init__() for all products, as it must be done at runtime
-libpango_path = ""
-
-# libpango-specific global declaration
-# This will be filled out by __init__()
-libpango_handle = C_NULL
-
-# This must be `const` so that we can use it with `ccall()`
-const libpango = "libpango-1.0-0.dll"
-
-
-# Relative path to `libpangocairo`
-const libpangocairo_splitpath = ["bin", "libpangocairo-1.0-0.dll"]
-
-# This will be filled out by __init__() for all products, as it must be done at runtime
-libpangocairo_path = ""
-
-# libpangocairo-specific global declaration
-# This will be filled out by __init__()
-libpangocairo_handle = C_NULL
-
-# This must be `const` so that we can use it with `ccall()`
-const libpangocairo = "libpangocairo-1.0-0.dll"
-
-
-# Relative path to `libpangoft`
-const libpangoft_splitpath = ["bin", "libpangoft2-1.0-0.dll"]
-
-# This will be filled out by __init__() for all products, as it must be done at runtime
-libpangoft_path = ""
-
-# libpangoft-specific global declaration
-# This will be filled out by __init__()
-libpangoft_handle = C_NULL
-
-# This must be `const` so that we can use it with `ccall()`
-const libpangoft = "libpangoft2-1.0-0.dll"
-
-
-"""
-Open all libraries
-"""
+JLLWrappers.@generate_wrapper_header("Pango")
+JLLWrappers.@declare_library_product(libpango, "libpango-1.0-0.dll")
+JLLWrappers.@declare_library_product(libpangocairo, "libpangocairo-1.0-0.dll")
+JLLWrappers.@declare_library_product(libpangoft, "libpangoft2-1.0-0.dll")
 function __init__()
-    global artifact_dir = abspath(artifact"Pango")
+    JLLWrappers.@generate_init_header(FriBidi_jll, FreeType2_jll, Glib_jll, Fontconfig_jll, HarfBuzz_jll, Cairo_jll)
+    JLLWrappers.@init_library_product(
+        libpango,
+        "bin\\libpango-1.0-0.dll",
+        RTLD_LAZY | RTLD_DEEPBIND,
+    )
 
-    # Initialize PATH and LIBPATH environment variable listings
-    global PATH_list, LIBPATH_list
-    # From the list of our dependencies, generate a tuple of all the PATH and LIBPATH lists,
-    # then append them to our own.
-    foreach(p -> append!(PATH_list, p), (FriBidi_jll.PATH_list, FreeType2_jll.PATH_list, Glib_jll.PATH_list, Fontconfig_jll.PATH_list, HarfBuzz_jll.PATH_list, Cairo_jll.PATH_list,))
-    foreach(p -> append!(LIBPATH_list, p), (FriBidi_jll.LIBPATH_list, FreeType2_jll.LIBPATH_list, Glib_jll.LIBPATH_list, Fontconfig_jll.LIBPATH_list, HarfBuzz_jll.LIBPATH_list, Cairo_jll.LIBPATH_list,))
+    JLLWrappers.@init_library_product(
+        libpangocairo,
+        "bin\\libpangocairo-1.0-0.dll",
+        RTLD_LAZY | RTLD_DEEPBIND,
+    )
 
-    global libpango_path = normpath(joinpath(artifact_dir, libpango_splitpath...))
+    JLLWrappers.@init_library_product(
+        libpangoft,
+        "bin\\libpangoft2-1.0-0.dll",
+        RTLD_LAZY | RTLD_DEEPBIND,
+    )
 
-    # Manually `dlopen()` this right now so that future invocations
-    # of `ccall` with its `SONAME` will find this path immediately.
-    global libpango_handle = dlopen(libpango_path)
-    push!(LIBPATH_list, dirname(libpango_path))
-
-    global libpangocairo_path = normpath(joinpath(artifact_dir, libpangocairo_splitpath...))
-
-    # Manually `dlopen()` this right now so that future invocations
-    # of `ccall` with its `SONAME` will find this path immediately.
-    global libpangocairo_handle = dlopen(libpangocairo_path)
-    push!(LIBPATH_list, dirname(libpangocairo_path))
-
-    global libpangoft_path = normpath(joinpath(artifact_dir, libpangoft_splitpath...))
-
-    # Manually `dlopen()` this right now so that future invocations
-    # of `ccall` with its `SONAME` will find this path immediately.
-    global libpangoft_handle = dlopen(libpangoft_path)
-    push!(LIBPATH_list, dirname(libpangoft_path))
-
-    # Filter out duplicate and empty entries in our PATH and LIBPATH entries
-    filter!(!isempty, unique!(PATH_list))
-    filter!(!isempty, unique!(LIBPATH_list))
-    global PATH = join(PATH_list, ';')
-    global LIBPATH = join(vcat(LIBPATH_list, [Sys.BINDIR, joinpath(Sys.BINDIR, Base.LIBDIR, "julia"), joinpath(Sys.BINDIR, Base.LIBDIR)]), ';')
-
-    
+    JLLWrappers.@generate_init_footer()
 end  # __init__()
-
